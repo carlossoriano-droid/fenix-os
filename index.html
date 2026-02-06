@@ -1,4 +1,4 @@
-}<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -246,9 +246,6 @@
             // UI STATES
             const [activeTab, setActiveTab] = useState('dashboard');
             const [newIncome, setNewIncome] = useState({ type: '', amount: '' });
-            // --- NUEVO ESTADO PARA FECHA ---
-            const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
-            
             const [suggestion, setSuggestion] = useState(null);
             
             // MODALES
@@ -295,10 +292,7 @@
                     if (tx.amount > 0 && tx.type !== 'ajuste_fondo') {
                         const typeLabel = { 'dulus': 'Dulus', 'excursion': 'Excursión', 'salario': 'Salario', 'fotografia': 'Foto', 'comision': 'Comisión', 'incentivo': 'Incentivo' }[tx.type] || tx.type;
                         incomeByType[typeLabel] = (incomeByType[typeLabel] || 0) + tx.amount;
-                        // Corrección: Usar tx.month directamente o parsear si se guardó string completo
-                        // Como ahora guardamos "Enero 2024", substring(0,3) funciona bien para "Ene"
-                        const monthShort = tx.month.substring(0, 3); 
-                        incomeByMonth[monthShort] = (incomeByMonth[monthShort] || 0) + tx.amount;
+                        const monthShort = tx.month.substring(0, 3); incomeByMonth[monthShort] = (incomeByMonth[monthShort] || 0) + tx.amount;
                         totalIncome += tx.amount;
                     }
                 });
@@ -324,24 +318,14 @@
             const handleExecuteAction = () => {
                 if (!suggestion) return;
                 const amount = parseFloat(newIncome.amount);
-                
-                // --- CORRECCIÓN FECHA ---
-                const [year, month, day] = incomeDate.split('-').map(Number);
-                const dateObj = new Date(year, month - 1, day); // Crear fecha local correcta
-                const monthName = dateObj.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-                const dateStr = dateObj.toLocaleDateString('es-ES');
-                
-                const newTx = { id: Math.random().toString(36).substr(2, 9), date: dateStr, month: monthName.charAt(0).toUpperCase() + monthName.slice(1), type: newIncome.type, amount: amount, actionTaken: suggestion.label };
+                const dateObj = new Date(); const monthName = dateObj.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+                const newTx = { id: Math.random().toString(36).substr(2, 9), date: dateObj.toLocaleDateString(), month: monthName.charAt(0).toUpperCase() + monthName.slice(1), type: newIncome.type, amount: amount, actionTaken: suggestion.label };
                 setTransactions([newTx, ...transactions]);
-
                 if (suggestion.action === 'save') setSavings(prev => ({ ...prev, pesos: prev.pesos + amount }));
                 else if (suggestion.action === 'pay_debt') setDebts(prev => prev.map(d => d.id === suggestion.targetDebtId ? { ...d, amount: Math.max(0, d.amount - amount) } : d));
                 else if (suggestion.action === 'split') setSavings(prev => ({ ...prev, pesos: prev.pesos + suggestion.details.save }));
                 else if (suggestion.action === 'split_debt_save') { setSavings(prev => ({ ...prev, pesos: prev.pesos + suggestion.details.save })); setDebts(prev => prev.map(d => d.id === suggestion.targetDebtId ? { ...d, amount: Math.max(0, d.amount - suggestion.details.pay) } : d)); }
-                
-                setNewIncome({ type: '', amount: '' }); 
-                setSuggestion(null);
-                // No reseteamos fecha para permitir ingresos masivos del mismo mes si se desea
+                setNewIncome({ type: '', amount: '' }); setSuggestion(null);
             };
 
             const handleDebtPayment = () => {
@@ -415,7 +399,6 @@
                             <GlassCard className="p-8 h-fit border-t-4 border-t-indigo-500">
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-6"><div className="p-2 bg-indigo-100 rounded-lg text-indigo-600"><Icon name="DollarSign" className="h-5 w-5"/></div>Registrar Ingreso</h2>
                                 <div className="space-y-6">
-                                    <div className="space-y-2"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Fecha</label><Input type="date" value={incomeDate} onChange={(e) => setIncomeDate(e.target.value)} className="text-lg font-bold" /></div>
                                     <div className="space-y-2"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Fuente</label><Select value={newIncome.type} onChange={(e) => setNewIncome({...newIncome, type: e.target.value})} options={[{value:'dulus',label:'✈️ Dulus Travel'},{value:'excursion',label:'🎒 Excursiones'},{value:'fotografia',label:'📷 Fotografía'},{value:'comision',label:'💼 Comisiones'},{value:'incentivo',label:'💰 Incentivos'},{value:'salario',label:'🏢 Sueldo Fijo'}]} /></div>
                                     <div className="space-y-2"><label className="text-xs font-bold text-slate-400 uppercase ml-1">Monto (RD$)</label><Input type="number" placeholder="0.00" value={newIncome.amount} onChange={(e) => setNewIncome({...newIncome, amount: e.target.value})} className="text-lg font-bold" /></div>
                                     {suggestion && (<div className={`p-5 rounded-2xl border ${suggestion.bg} animate-enter`}><div className="flex gap-4"><div className={`p-3 rounded-xl bg-white/60 ${suggestion.color}`}><Icon name={suggestion.icon} className="h-6 w-6"/></div><div className="flex-1"><h4 className={`font-bold ${suggestion.color}`}>{suggestion.title}</h4><p className="text-sm text-slate-700 mt-1">{suggestion.text}</p></div></div><Button onClick={handleExecuteAction} className="w-full mt-4 h-12 text-base rounded-xl">{suggestion.action === 'log' ? 'Guardar' : 'Ejecutar'} <Icon name="ArrowUpRight" className="ml-2 h-4 w-4"/></Button></div>)}
