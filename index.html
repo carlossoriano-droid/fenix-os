@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fénix OS v8</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .font-display { font-family: 'SF Pro Display', 'Inter', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07); }
+        .animate-enter { animation: enter 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes enter { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.3); backdrop-filter: blur(8px); }
+        .chart-bar { transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    </style>
+</head>
+<body class="bg-[#F0F2F5] text-slate-800 min-h-screen selection:bg-indigo-500 selection:text-white pb-safe">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONOS ---
+        const Icon = ({ name, className }) => {
+            const icons = {
+                Shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, TrendingDown: <g><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></g>, TrendingUp: <g><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></g>, AlertTriangle: <g><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></g>, DollarSign: <g><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></g>, Target: <g><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></g>, Wallet: <g><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z" /></g>, BrainCircuit: <g><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" /><path d="M9 13a4.5 4.5 0 0 0 3-4" /><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" /><path d="M3.477 10.896a4 4 0 0 1 .585-.396" /><path d="M6 18a4 4 0 0 1-1.97-3.484" /><path d="M12 18a4 4 0 0 0 1.134-3.055" /><path d="M10.605 9H13.8" /></g>, Trash2: <g><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></g>, Calendar: <g><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></g>, Sparkles: <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275-1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />, Bot: <g><rect width="18" height="10" x="3" y="11" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4" /><line x1="8" y1="16" x2="8" y2="16" /><line x1="16" y1="16" x2="16" y2="16" /></g>, ArrowUpRight: <g><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></g>, Plus: <g><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></g>, Minus: <line x1="5" y1="12" x2="19" y2="12" />, Edit: <g><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></g>, Check: <polyline points="20 6 9 17 4 12" />, Settings: <g><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></g>, ChartPie: <g><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></g>, Flag: <g><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></g>, Feather: <g><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" /><line x1="16" y1="8" x2="2" y2="22" /><line x1="17.5" y1="15" x2="9" y2="15" /></g>, Briefcase: <g><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></g>, Lightbulb: <g><line x1="9" y1="18" x2="15" y2="18" /><line x1="10" y1="22" x2="14" y2="22" /><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 12 2a4.65 4.65 0 0 0-4.5 9.5c.7.7 1.23 1.52 1.41 2.5" /></g>, Cloud: <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />, Upload: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></g>, Download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></g>, Copy: <g><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></g>
+            };
+            return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || <circle cx="12" cy="12" r="10" />}</svg>;
+        };
+
+        // --- COMPONENTES UI ---
+        const GlassCard = ({ children, className = "" }) => <div className={`glass-panel rounded-3xl transition-all duration-300 ${className}`}>{children}</div>;
+        const Button = ({ children, onClick, className = "", variant = "primary", disabled = false, size="md" }) => {
+            const sizes = { xs: "px-2 py-1 text-xs", sm: "px-3 py-1.5 text-xs", md: "px-5 py-2.5 text-sm", lg: "px-6 py-3 text-base" };
+            const variants = { primary: "bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-900/20 active:translate-y-0.5", indigo: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 active:translate-y-0.5", emerald: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 active:translate-y-0.5", ghost: "bg-transparent text-slate-500 hover:bg-white/50 hover:text-slate-800", danger: "bg-rose-600 text-white hover:bg-rose-700 shadow-lg shadow-rose-500/30", outline: "border border-slate-300 text-slate-700 hover:bg-white/60 backdrop-blur-sm" };
+            return <button onClick={onClick} disabled={disabled} className={`rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${sizes[size] || sizes.md} ${variants[variant] || variants.primary} ${className}`}>{children}</button>;
+        };
+        const Input = ({ type = "text", value, onChange, placeholder, className = "" }) => <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`w-full px-4 py-3 rounded-xl bg-white/40 border border-white/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white/70 transition-all backdrop-blur-sm placeholder:text-slate-400 ${className}`} />;
+        const Select = ({ value, onChange, options, className = "" }) => <div className="relative"><select value={value} onChange={onChange} className={`w-full px-4 py-3 rounded-xl bg-white/40 border border-white/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white/70 transition-all backdrop-blur-sm appearance-none ${className}`}><option value="" disabled>Selecciona...</option>{options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select><div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div></div>;
+        const ProgressBar = ({ value, className = "", color = "bg-slate-900" }) => <div className={`w-full bg-slate-200/50 rounded-full h-3 overflow-hidden ${className}`}><div className={`${color} h-full rounded-full chart-bar`} style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}></div></div>;
+        const SimpleDonutChart = ({ data }) => { const total = data.reduce((acc, item) => acc + item.value, 0); let cumulativePercent = 0; if (total === 0) return <div className="h-48 w-48 rounded-full border-4 border-slate-100 flex items-center justify-center text-xs text-slate-400">Sin datos</div>; return <div className="relative h-48 w-48"><svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">{data.map((item, i) => { const percent = item.value / total; const dashArray = `${percent * 314} 314`; const offset = -(cumulativePercent * 314); cumulativePercent += percent; const colors = { 'text-indigo-600': '#4F46E5', 'text-emerald-600': '#059669', 'text-rose-600': '#E11D48', 'text-purple-600': '#7C3AED', 'text-blue-600': '#2563EB', 'text-slate-600': '#475569' }; return <circle key={i} cx="50" cy="50" r="40" fill="transparent" stroke={colors[item.color] || '#cbd5e1'} strokeWidth="12" strokeDasharray={dashArray} strokeDashoffset={offset} className="chart-segment" />; })}</svg><div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-2xl font-bold text-slate-800">RD$</span><span className="text-xs text-slate-500 uppercase tracking-wide">Total</span></div></div>; };
+        const SimpleBarChart = ({ data }) => { const maxVal = Math.max(...data.map(d => d.value), 1); return <div className="flex items-end justify-between h-48 gap-2 pt-6">{data.map((d, i) => <div key={i} className="flex-1 flex flex-col items-center gap-2 group"><div className="w-full bg-slate-100/50 rounded-t-lg relative h-full flex items-end overflow-hidden group-hover:bg-slate-100 transition-colors"><div className="w-full bg-gradient-to-t from-indigo-600 to-purple-500 opacity-80 group-hover:opacity-100 rounded-t-lg chart-bar relative" style={{ height: `${(d.value / maxVal) * 100}%` }}><div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">${d.value.toLocaleString()}</div></div></div><span className="text-xs font-medium text-slate-400 group-hover:text-indigo-600">{d.label}</span></div>)}</div>; };
+        const Modal = ({ isOpen, onClose, title, children }) => { if (!isOpen) return null; return <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4 animate-enter"><div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-white/50"><div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50"><h3 className="font-bold text-lg text-slate-800">{title}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full transition-all"><Icon name="Trash2" className="h-5 w-5 rotate-45" /></button></div><div className="p-6">{children}</div></div></div>; };
+
+        // --- APP PRINCIPAL ---
+        const PlanFenixDashboard = () => {
+            // DATOS PERSISTENTES (LOCAL STORAGE)
+            const [savings, setSavings] = useState(() => { const s = localStorage.getItem('fenix_savings'); return s ? JSON.parse(s) : { pesos: 0, dolares: 0 }; });
+            const [myPlan, setMyPlan] = useState(() => localStorage.getItem('fenix_plan') || `1. ENTREGAR VEHÍCULO 🚗\n2. BLINDAR VIVIENDA 🏠\n3. BOLA DE NIEVE (DEUDAS) ❄️\n4. AHORRO (DULUS) ✈️`);
+            const [debts, setDebts] = useState(() => { const d = localStorage.getItem('fenix_debts'); return d ? JSON.parse(d) : [ {id:1, name:'TDC Banesco', amount:44546, original:44546, priority:'Alta'}, {id:2, name:'TDC Promerica', amount:172500, original:172500, priority:'Alta'}, {id:3, name:'Atraso Apto', amount:90000, original:90000, priority:'Crítica'} ]; });
+            const [expenses, setExpenses] = useState(() => { const e = localStorage.getItem('fenix_expenses'); return e ? JSON.parse(e) : [{ id: 1, name: 'Alquiler', amount: 22500 }, { id: 2, name: 'Combustible', amount: 2000 }, { id: 3, name: 'Comida', amount: 15165 }]; });
+            const [transactions, setTransactions] = useState(() => { const t = localStorage.getItem('fenix_transactions'); return t ? JSON.parse(t) : []; });
+            const [estimatedIncome, setEstimatedIncome] = useState(() => localStorage.getItem('fenix_est_income') || "116583");
+            const [userApiKey, setUserApiKey] = useState(() => localStorage.getItem('fenix_api_key') || "");
+
+            // UI STATES
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [newIncome, setNewIncome] = useState({ type: '', amount: '' });
+            const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
+            const [suggestion, setSuggestion] = useState(null);
+            
+            // MODALS
+            const [modalState, setModalState] = useState({ type: null, data: null });
+            const [formState, setFormState] = useState({});
+            const [coachQuestion, setCoachQuestion] = useState('');
+            const [aiAdvice, setAiAdvice] = useState(null);
+            const [isAiLoading, setIsAiLoading] = useState(false);
+            const [settingsOpen, setSettingsOpen] = useState(false);
+            const [migrationData, setMigrationData] = useState(''); // Para exportar/importar
+
+            // PERSISTENCIA AUTOMÁTICA
+            useEffect(() => {
+                localStorage.setItem('fenix_savings', JSON.stringify(savings));
+                localStorage.setItem('fenix_debts', JSON.stringify(debts));
+                localStorage.setItem('fenix_expenses', JSON.stringify(expenses));
+                localStorage.setItem('fenix_transactions', JSON.stringify(transactions));
+                localStorage.setItem('fenix_plan', myPlan);
+                localStorage.setItem('fenix_api_key', userApiKey);
+                localStorage.setItem('fenix_est_income', estimatedIncome);
+            }, [savings, debts, expenses, transactions, myPlan, userApiKey, estimatedIncome]);
+
+            // CALCULOS
+            const totalDebt = debts.reduce((acc, c) => acc + c.amount, 0);
+            const totalFixed = expenses.reduce((acc, c) => acc + c.amount, 0);
+            const debtCapacity = parseFloat(estimatedIncome || 0) - totalFixed;
+            const suggestedDebt = debts.filter(d => d.amount > 0).sort((a, b) => {
+                const p = { 'Crítica': 4, 'Alta': 3, 'Media': 2, 'Baja': 1 };
+                return p[b.priority] !== p[a.priority] ? p[b.priority] - p[a.priority] : a.amount - b.amount;
+            })[0];
+
+            // REPORT LOGIC
+            const reportData = useMemo(() => {
+                const byType = {}; const byMonth = {}; let total = 0;
+                transactions.forEach(tx => {
+                    if (tx.amount > 0 && tx.type !== 'ajuste_fondo') {
+                        const label = { 'dulus': 'Dulus', 'excursion': 'Excursión', 'salario': 'Salario', 'fotografia': 'Foto', 'comision': 'Comisión', 'incentivo': 'Incentivo' }[tx.type] || tx.type;
+                        byType[label] = (byType[label] || 0) + tx.amount;
+                        const m = tx.month.substring(0, 3); byMonth[m] = (byMonth[m] || 0) + tx.amount;
+                        total += tx.amount;
+                    }
+                });
+                return {
+                    donut: Object.keys(byType).map(k => ({ label: k, value: byType[k], color: k.includes('Dulus') ? 'text-emerald-600' : 'text-indigo-600' })),
+                    bar: Object.keys(byMonth).map(k => ({ label: k, value: byMonth[k] })).slice(-6),
+                    total
+                };
+            }, [transactions]);
+
+            // ACTIONS
+            useEffect(() => {
+                if (!newIncome.amount || !newIncome.type) { setSuggestion(null); return; }
+                const amt = parseFloat(newIncome.amount);
+                const map = {
+                    'dulus': { t: "Patrimonio", d: `Compra USD $${(amt/60).toFixed(2)}`, a: 'save', c: 'text-emerald-600', i: 'TrendingUp' },
+                    'excursion': { t: "Ataque Deuda", d: "Abona a Tarjeta", a: 'pay_debt', c: 'text-rose-600', i: 'Target' },
+                    'salario': { t: "Estabilidad", d: "Registrar ingreso", a: 'log', c: 'text-slate-600', i: 'Wallet' }
+                };
+                const s = map[newIncome.type] || { t: "Registro", d: "Guardar ingreso", a: 'log', c: 'text-blue-600', i: 'Check' };
+                setSuggestion({ ...s, details: { amt } });
+            }, [newIncome]);
+
+            const executeAction = () => {
+                if (!suggestion) return;
+                const amt = parseFloat(newIncome.amount);
+                const [y, m, d] = incomeDate.split('-').map(Number);
+                const dateObj = new Date(y, m - 1, d);
+                const tx = { id: Math.random().toString(36).substr(2, 9), date: dateObj.toLocaleDateString('es-ES'), month: dateObj.toLocaleString('es-ES', { month: 'long', year: 'numeric' }), type: newIncome.type, amount: amt, actionTaken: suggestion.t };
+                setTransactions([tx, ...transactions]);
+                if (suggestion.a === 'save') setSavings(prev => ({ ...prev, pesos: prev.pesos + amt }));
+                if (suggestion.a === 'pay_debt' && suggestedDebt) setDebts(prev => prev.map(d => d.id === suggestedDebt.id ? { ...d, amount: Math.max(0, d.amount - amt) } : d));
+                setNewIncome({ type: '', amount: '' }); setSuggestion(null);
+            };
+
+            const updateFund = (type, action, amt) => {
+                const val = parseFloat(amt); if (!val) return;
+                const newSavings = { ...savings }; newSavings[type] = action === 'add' ? newSavings[type] + val : Math.max(0, newSavings[type] - val);
+                setSavings(newSavings);
+                const tx = { id: Math.random().toString(36).substr(2,9), date: new Date().toLocaleDateString('es-ES'), month: 'Ajuste', type: 'ajuste_fondo', amount: val, actionTaken: `${action === 'add' ? 'Ingreso' : 'Retiro'} ${type}` };
+                setTransactions([tx, ...transactions]); setModalState({ type: null });
+            };
+
+            const payDebt = (id, amt) => {
+                const val = parseFloat(amt); if (!val) return;
+                setDebts(prev => prev.map(d => d.id === id ? { ...d, amount: Math.max(0, d.amount - val) } : d));
+                const debtName = debts.find(d => d.id === id)?.name || 'Deuda';
+                const tx = { id: Math.random().toString(36).substr(2,9), date: new Date().toLocaleDateString('es-ES'), month: 'Pago', type: 'pago_manual', amount: -val, actionTaken: `Pago a ${debtName}` };
+                setTransactions([tx, ...transactions]); setModalState({ type: null });
+            };
+
+            const handleExport = () => {
+                const fullData = JSON.stringify({ savings, debts, expenses, transactions, myPlan, estimatedIncome });
+                const encoded = btoa(unescape(encodeURIComponent(fullData))); // Simple encoding
+                setMigrationData(encoded);
+                setModalState({ type: 'export' });
+            };
+
+            const handleImport = () => {
+                try {
+                    const decoded = decodeURIComponent(escape(atob(formState.importData)));
+                    const data = JSON.parse(decoded);
+                    if(confirm("¿Reemplazar todos los datos actuales con esta copia de seguridad?")) {
+                        if(data.savings) setSavings(data.savings);
+                        if(data.debts) setDebts(data.debts);
+                        if(data.expenses) setExpenses(data.expenses);
+                        if(data.transactions) setTransactions(data.transactions);
+                        if(data.myPlan) setMyPlan(data.myPlan);
+                        if(data.estimatedIncome) setEstimatedIncome(data.estimatedIncome);
+                        alert("¡Datos restaurados con éxito!");
+                        setModalState({ type: null });
+                        window.location.reload();
+                    }
+                } catch(e) { alert("Código inválido. Revisa que lo copiaste completo."); }
+            };
+
+            const callAi = async () => {
+                if (!userApiKey) { setSettingsOpen(true); return; }
+                setIsAiLoading(true);
+                const p = `Coach. Deuda: ${totalDebt}. Ahorro: ${savings.pesos}. Libre: ${debtCapacity}. ${coachQuestion}. Responde corto.`;
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contents: [{ parts: [{ text: p }] }] }) });
+                    const res = await r.json();
+                    setAiAdvice(res.candidates?.[0]?.content?.parts?.[0]?.text || "Error API");
+                } catch (e) { setAiAdvice("Error de red."); }
+                setIsAiLoading(false);
+            };
+
+            return (
+                <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 animate-enter pb-24 md:pb-8">
+                    {/* Header Mobile Compact */}
+                    <div className="flex justify-between items-center bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-white/50 sticky top-4 z-40">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200"><Icon name="Feather" /></div>
+                            <div><h1 className="font-display font-bold text-slate-800 leading-tight">Fénix OS</h1><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Edición Portátil</p></div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="ghost" onClick={handleExport} size="sm"><Icon name="Cloud" className="w-5 h-5 text-indigo-600"/></Button>
+                            <Button variant="ghost" onClick={() => setSettingsOpen(true)} size="sm"><Icon name="Settings" className="w-5 h-5"/></Button>
+                        </div>
+                    </div>
+
+                    {/* VISTAS */}
+                    {activeTab === 'dashboard' && (
+                        <div className="space-y-6">
+                            <GlassCard className="p-6 border-t-4 border-t-indigo-500">
+                                <h2 className="font-bold text-slate-700 mb-4 flex gap-2"><Icon name="DollarSign" className="text-indigo-500"/> Registrar</h2>
+                                <div className="grid gap-3">
+                                    <Input type="date" value={incomeDate} onChange={e => setIncomeDate(e.target.value)} className="font-bold" />
+                                    <Select value={newIncome.type} onChange={e => setNewIncome({...newIncome, type: e.target.value})} options={[{value:'dulus',label:'✈️ Dulus'},{value:'excursion',label:'🎒 Excursión'},{value:'salario',label:'🏢 Salario'},{value:'incentivo',label:'💰 Incentivo'},{value:'comision',label:'💼 Comisión'}]} />
+                                    <Input type="number" placeholder="Monto RD$" value={newIncome.amount} onChange={e => setNewIncome({...newIncome, amount: e.target.value})} className="text-xl font-bold" />
+                                    {suggestion && <Button onClick={executeAction} className="w-full mt-2 h-12 text-lg">{suggestion.a === 'log' ? 'Guardar' : 'Ejecutar'} <Icon name="ArrowUpRight" className="ml-2"/></Button>}
+                                </div>
+                            </GlassCard>
+                            <div className="grid grid-cols-2 gap-4">
+                                <GlassCard className="p-4"><p className="text-xs text-slate-400 font-bold uppercase">Deuda</p><div className="text-2xl font-display font-bold text-rose-600">RD$ {totalDebt.toLocaleString()}</div></GlassCard>
+                                <GlassCard className="p-4"><p className="text-xs text-slate-400 font-bold uppercase">Ahorro</p><div className="text-2xl font-display font-bold text-emerald-600">RD$ {savings.pesos.toLocaleString()}</div></GlassCard>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'funds' && (
+                        <div className="space-y-4">
+                            {['pesos', 'dolares'].map(type => (
+                                <GlassCard key={type} className={`p-6 border-l-4 ${type === 'pesos' ? 'border-l-indigo-500' : 'border-l-emerald-500'}`}>
+                                    <div className="flex justify-between mb-4">
+                                        <div><h3 className="text-xs font-bold text-slate-400 uppercase">Fondo {type}</h3><div className="text-3xl font-display font-bold text-slate-800">{type === 'pesos' ? 'RD$' : 'USD$'} {savings[type].toLocaleString()}</div></div>
+                                        <div className={`p-3 rounded-xl ${type === 'pesos' ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'}`}><Icon name={type === 'pesos' ? 'Shield' : 'TrendingUp'}/></div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Button variant={type === 'pesos' ? 'indigo' : 'emerald'} onClick={() => setModalState({ type: 'fund', data: { curr: type, act: 'add' } })}><Icon name="Plus" className="mr-1"/> Ingresar</Button>
+                                        <Button variant="outline" onClick={() => setModalState({ type: 'fund', data: { curr: type, act: 'sub' } })}>Retirar</Button>
+                                    </div>
+                                </GlassCard>
+                            ))}
+                        </div>
+                    )}
+
+                    {activeTab === 'expenses' && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center"><h2 className="font-bold text-slate-800">Gastos Fijos</h2><Button size="sm" onClick={() => setModalState({type: 'expense', data: {mode: 'add'}})}><Icon name="Plus"/> Agregar</Button></div>
+                            <GlassCard className="p-5 bg-slate-800 text-white flex justify-between items-center">
+                                <div><p className="text-slate-400 text-xs uppercase font-bold">Total Mensual</p><h3 className="text-3xl font-display font-bold">RD$ {totalFixed.toLocaleString()}</h3></div>
+                                <div className="p-3 bg-white/10 rounded-xl"><Icon name="Target"/></div>
+                            </GlassCard>
+                            <div className="grid gap-3">
+                                {expenses.map(e => (
+                                    <GlassCard key={e.id} className="p-4 flex justify-between items-center">
+                                        <div><h4 className="font-bold text-slate-700">{e.name}</h4><p className="text-slate-500 text-sm">RD$ {e.amount.toLocaleString()}</p></div>
+                                        <Button variant="ghost" size="sm" onClick={() => setModalState({type: 'expense', data: {mode: 'edit', ...e}})}><Icon name="Edit" className="h-4 w-4"/></Button>
+                                    </GlassCard>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'debts' && (
+                        <div className="space-y-6">
+                            <GlassCard className="p-0 overflow-hidden">
+                                <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
+                                    <div><p className="text-slate-400 text-xs font-bold uppercase">Disponible Real</p><div className={`text-3xl font-bold ${debtCapacity > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>RD$ {debtCapacity.toLocaleString()}</div></div>
+                                    <div className="text-right text-xs text-slate-400"><p>Ingreso: {parseFloat(estimatedIncome).toLocaleString()}</p><p>- Gastos: {totalFixed.toLocaleString()}</p></div>
+                                </div>
+                                <div className="p-4 bg-indigo-50 text-xs text-indigo-800 font-medium flex gap-2"><Icon name="Bot" className="h-4 w-4"/> Sugerencia: Atacar {suggestedDebt ? suggestedDebt.name : 'Ahorro'}</div>
+                            </GlassCard>
+                            <div className="grid gap-4">
+                                {debts.map(d => (
+                                    <GlassCard key={d.id} className={`p-5 ${d.amount === 0 ? 'opacity-60' : ''}`}>
+                                        <div className="flex justify-between mb-3">
+                                            <div><h3 className="font-bold text-slate-800">{d.name}</h3><span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold uppercase">{d.priority}</span></div>
+                                            <div className="text-right"><p className="font-bold text-lg">RD$ {d.amount.toLocaleString()}</p><p className="text-xs text-slate-400">de {d.original.toLocaleString()}</p></div>
+                                        </div>
+                                        <ProgressBar value={((d.original - d.amount) / d.original) * 100} color="bg-rose-500" />
+                                        {d.amount > 0 && <Button variant="outline" size="sm" className="w-full mt-4 text-rose-600 border-rose-200" onClick={() => setModalState({ type: 'payDebt', data: d })}>Registrar Pago</Button>}
+                                    </GlassCard>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'reports' && (
+                        <div className="space-y-6">
+                            <GlassCard className="p-6 flex flex-col items-center">
+                                <h3 className="font-bold text-slate-700 mb-4 w-full">Distribución</h3>
+                                <SimpleDonutChart data={reportData.donut} />
+                                <div className="w-full mt-4 space-y-2">{reportData.donut.map((d,i)=><div key={i} className="flex justify-between text-xs"><span className={`font-bold ${d.color}`}>{d.label}</span><span>RD$ {d.value.toLocaleString()}</span></div>)}</div>
+                            </GlassCard>
+                            <GlassCard className="p-6">
+                                <h3 className="font-bold text-slate-700 mb-2">Tendencia</h3>
+                                <SimpleBarChart data={reportData.bar} />
+                            </GlassCard>
+                        </div>
+                    )}
+
+                    {activeTab === 'coach' && (
+                        <GlassCard className="p-6 space-y-4">
+                            <h2 className="font-bold text-xl flex gap-2 items-center"><Icon name="Sparkles" className="text-indigo-600"/> Coach Fénix</h2>
+                            <textarea className="w-full p-4 bg-white/50 rounded-xl border-0" rows="3" placeholder="Pregúntame..." value={coachQuestion} onChange={e => setCoachQuestion(e.target.value)}></textarea>
+                            <Button onClick={callAi} className="w-full" disabled={isAiLoading}>{isAiLoading ? '...' : 'Consultar'}</Button>
+                            {aiAdvice && <div className="p-4 bg-white rounded-xl shadow-sm text-sm leading-relaxed">{aiAdvice}</div>}
+                        </GlassCard>
+                    )}
+
+                    {/* Bottom Nav Mobile */}
+                    <div className="fixed bottom-4 left-4 right-4 bg-white/90 backdrop-blur-xl p-2 rounded-2xl shadow-2xl border border-white/50 flex justify-between z-50 md:hidden">
+                        {[ {id:'dashboard', i:'Sparkles'}, {id:'funds', i:'Wallet'}, {id:'expenses', i:'Briefcase'}, {id:'debts', i:'TrendingDown'}, {id:'coach', i:'Bot'}, {id:'reports', i:'ChartPie'} ].map(t => (
+                            <button key={t.id} onClick={() => setActiveTab(t.id)} className={`p-3 rounded-xl transition-all ${activeTab === t.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400'}`}>
+                                <Icon name={t.i} className="h-6 w-6"/>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* MODALS */}
+                    <Modal isOpen={!!modalState.type} onClose={() => setModalState({ type: null })} title={modalState.type === 'payDebt' ? 'Abonar Deuda' : modalState.type === 'fund' ? 'Movimiento' : modalState.type === 'export' ? 'Copia de Seguridad' : modalState.type === 'import' ? 'Restaurar' : 'Editar'}>
+                        <div className="space-y-4">
+                            {modalState.type === 'payDebt' && (<><Input type="number" placeholder="Monto" value={formState.amount || ''} onChange={e => setFormState({...formState, amount: e.target.value})} className="text-xl font-bold" /><Button onClick={() => payDebt(modalState.data.id, formState.amount)} className="w-full">Confirmar</Button></>)}
+                            {modalState.type === 'fund' && (<><p className="text-sm text-slate-500">{modalState.data.act === 'add' ? 'Ingresar a' : 'Retirar de'} {modalState.data.curr}</p><Input type="number" placeholder="Monto" value={formState.amount || ''} onChange={e => setFormState({...formState, amount: e.target.value})} className="text-xl font-bold" /><Button onClick={() => updateFund(modalState.data.curr, modalState.data.act, formState.amount)} className="w-full" variant={modalState.data.act === 'add' ? 'emerald' : 'danger'}>Confirmar</Button></>)}
+                            {modalState.type === 'expense' && (<><Input placeholder="Nombre" value={formState.name || modalState.data?.name || ''} onChange={e => setFormState({...formState, name: e.target.value})} /><Input type="number" placeholder="Monto" value={formState.amount || modalState.data?.amount || ''} onChange={e => setFormState({...formState, amount: e.target.value})} /><div className="flex gap-2">{modalState.data?.mode === 'edit' && <Button variant="danger" onClick={() => { const newData = expenses.filter(e => e.id !== modalState.data.id); setExpenses(newData); setModalState({type:null}); }}>Borrar</Button>}<Button className="flex-1" onClick={() => { const val = parseFloat(formState.amount); let newExps = [...expenses]; if (modalState.data.mode === 'add') newExps.push({ id: Date.now(), name: formState.name, amount: val }); else newExps = newExps.map(e => e.id === modalState.data.id ? { ...e, name: formState.name, amount: val } : e); setExpenses(newExps); setModalState({type:null}); }}>Guardar</Button></div></>)}
+                            {modalState.type === 'export' && (<div className="text-center"><p className="text-sm text-slate-500 mb-2">Copia este código y guárdalo (o envíalo a tu celular):</p><textarea readOnly className="w-full h-32 p-3 bg-slate-100 rounded-xl text-xs font-mono break-all" onClick={e => e.target.select()}>{migrationData}</textarea><Button className="w-full mt-2" onClick={() => { navigator.clipboard.writeText(migrationData); alert("Copiado al portapapeles"); }}>Copiar Código</Button></div>)}
+                            {modalState.type === 'import' && (<div className="text-center"><p className="text-sm text-slate-500 mb-2">Pega aquí el código de respaldo:</p><textarea className="w-full h-32 p-3 bg-slate-100 rounded-xl text-xs font-mono break-all" placeholder="Pega el código aquí..." onChange={e => setFormState({ ...formState, importData: e.target.value })}></textarea><Button className="w-full mt-2" variant="danger" onClick={handleImport}>Restaurar Datos</Button></div>)}
+                        </div>
+                    </Modal>
+
+                    {/* Settings Modal */}
+                    <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Ajustes">
+                        <div className="space-y-4">
+                            <div><label className="text-xs font-bold text-slate-400">Datos</label><div className="flex gap-2 mt-1"><Button className="flex-1" variant="outline" onClick={handleExport}><Icon name="Upload" className="mr-2"/>Exportar</Button><Button className="flex-1" variant="outline" onClick={() => setModalState({ type: 'import' })}><Icon name="Download" className="mr-2"/>Importar</Button></div></div>
+                            <div><label className="text-xs font-bold text-slate-400">API Key (Google Gemini)</label><Input type="password" value={formState.apiKey || userApiKey} onChange={e => setFormState({...formState, apiKey: e.target.value})} placeholder="Pegar aquí..." /><Button onClick={() => { setUserApiKey(formState.apiKey); setSettingsOpen(false); alert("Guardado"); }} className="w-full mt-2">Guardar</Button></div>
+                            <div><label className="text-xs font-bold text-slate-400">Ingreso Estimado Mensual</label><Input type="number" value={formState.estInc || estimatedIncome} onChange={e => setFormState({...formState, estInc: e.target.value})} /><Button onClick={() => { setEstimatedIncome(formState.estInc); setSettingsOpen(false); }} className="w-full mt-2" variant="outline">Actualizar</Button></div>
+                        </div>
+                    </Modal>
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PlanFenixDashboard />);
+    </script>
+</body>
+</html>
